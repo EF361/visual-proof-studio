@@ -207,10 +207,43 @@ body {
 
 @media (max-width: 1100px) {
   .studio-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .workflow-steps-nav {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-header {
+    padding: 0 1rem;
+    gap: 0.75rem;
+  }
+  .header-brand {
+    flex-shrink: 1;
+    min-width: 0;
+    gap: 0.6rem;
+  }
+  .brand-headings h1 {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+  .header-brand .sub-label,
+  .header-status {
+    display: none;
+  }
+  .btn-quick-linkedin {
+    padding: 0.5rem 0.85rem;
+  }
+  .studio-main {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+  .card-step-header {
+    flex-wrap: wrap;
+  }
+  .card-step-header > div:not(.step-indicator-tag) {
+    flex: 1 1 200px;
   }
 }
 
@@ -1673,7 +1706,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-label-row .preset-pill-row {
+  margin-top: 0;
 }
 
 .field-label-row .field-label {
@@ -1729,9 +1768,9 @@ body {
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 

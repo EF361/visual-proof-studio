@@ -149,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const metaFrames = document.getElementById('meta-frames');
   const metaRes = document.getElementById('meta-res');
   const metaSize = document.getElementById('meta-size');
-  const recentList = document.getElementById('recent-list');
 
   // LinkedIn Publish Action Buttons
   const publishLinkedinBtn = document.getElementById('publish-linkedin-btn');
@@ -445,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isCollapsed = scenarioDetailsContainer.classList.contains('collapsed');
       scenarioDetailsContainer.classList.toggle('collapsed', !isCollapsed);
       customizeChevron.classList.toggle('open', isCollapsed);
-      customizeToggleText.textContent = isCollapsed ? 'Hide Details & Prompts ▴' : 'Fine-Tune Story & Scene Steps ▾';
+      customizeToggleText.textContent = isCollapsed ? 'Hide Details & Prompts' : 'Fine-Tune Story & Scene Steps';
     });
   }
 
