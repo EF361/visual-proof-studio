@@ -1193,6 +1193,20 @@ body {
   border-bottom: 1px solid #1e293b;
 }
 
+.demo-note {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.1);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.demo-note strong {
+  color: #fde68a;
+}
+
 .pill-badge {
   font-size: 0.7rem;
   font-family: var(--font-mono);

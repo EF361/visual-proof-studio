@@ -40,7 +40,8 @@ module.exports = (req, res) => {
       durationSec: 12,
       colorMode,
       title: body.title || 'Enterprise Serverless & Edge Pipeline',
-      clientSynthesize: false
+      clientSynthesize: false,
+      demo: true
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
