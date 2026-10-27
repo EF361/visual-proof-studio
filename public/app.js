@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const metaDuration = document.getElementById('meta-duration');
   const metaFrames = document.getElementById('meta-frames');
   const metaRes = document.getElementById('meta-res');
+  const demoNote = document.getElementById('demo-note');
   const metaSize = document.getElementById('meta-size');
 
   // LinkedIn Publish Action Buttons
@@ -1104,7 +1105,8 @@ Try clicking through it live: {url}
       size: fallbackSize,
       videoSize: fallbackVidSize,
       resolution: fallbackRes,
-      aspectRatio: chosenRatio
+      aspectRatio: chosenRatio,
+      demo: true
     });
   });
 
@@ -1166,7 +1168,8 @@ Try clicking through it live: {url}
       size: flowSize,
       videoSize: flowVidSize,
       resolution: '1080 × 740',
-      aspectRatio: '1.46:1'
+      aspectRatio: '1.46:1',
+      demo: true
     });
   });
 
@@ -1257,6 +1260,9 @@ Try clicking through it live: {url}
       metaRes.textContent = data.resolution || '1080 × 1080';
     }
 
+    // Sample media (Vercel API or client fallback) is labelled so it is not mistaken for a real recording
+    if (demoNote) demoNote.classList.toggle('hidden', !data.demo);
+
     updateSizeDisplay('gif', data);
     highlightStep(3);
     showToast('Visual Proof ready in LinkedIn Post Preview!');
@@ -1283,7 +1289,8 @@ Try clicking through it live: {url}
     size: 1751120,
     videoSize: 839168,
     resolution: '1080 × 1080',
-    aspectRatio: '1:1'
+    aspectRatio: '1:1',
+    demo: true
   });
 
   planBtn.addEventListener('click', fetchPlan);

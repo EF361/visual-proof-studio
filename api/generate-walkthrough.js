@@ -60,6 +60,7 @@ module.exports = (req, res) => {
       durationSec,
       aspectRatio: ratio,
       clientSynthesize: false,
+      demo: true,
       targetUrl: body.targetUrl || 'https://intelligent-curie-alpha.vercel.app/'
     });
   } catch (err) {
