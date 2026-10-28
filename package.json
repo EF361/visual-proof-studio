@@ -1,10 +1,12 @@
 {
-  "name": "kind-borg",
+  "name": "visual-proof-studio",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Record real browser walkthroughs and animated flowcharts as GIF and MP4 for LinkedIn posts.",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "record": "node record-live.js",
+    "samples": "node generate-flowcharts.js",
     "test": "node test-verify.js"
   },
   "keywords": [],

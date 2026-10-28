@@ -6,6 +6,12 @@
 > A post that literally types out *"• Situation: ... • Action: ... • Result: ... • Insight: ..."* reads like a robot template.
 > A post that reads like an **authentic builder documenting their real journey, engineering trade-offs, and shipping milestones** builds real trust, respect, and high engagement.
 
+> **Before you post: check every fact.**
+> Everything in `[square brackets]` below is a placeholder or an *example* from a different project.
+> Replace it with something true about **your** project, or delete it. Never post a number you did not measure
+> (speed, percentages, "10× faster") or a technique your app does not use (Web Worker, edge WAF, and so on).
+> The studio's **Post to LinkedIn** button refuses to post while any `[bracketed]` text is left.
+
 ---
 
 ## The 4 Invisible Pillars (Weave into the Story Naturally)
@@ -30,7 +36,7 @@ Use a different archetype for every post so your LinkedIn feed reads like a dyna
 > **Attachment:** Web Walkthrough GIF or HD Video.
 
 ```markdown
-I spent 3 nights rewriting this one flow because static screenshots weren't cutting it.
+I spent [how long?] rewriting this one flow because static screenshots weren't cutting it.
 
 Whenever I shared our progress, people would say: "Looks nice, what does it actually do?"
 Links to GitHub got bookmarked and forgotten. Screenshots didn't show the real-time latency or the interaction feel.
@@ -45,7 +51,7 @@ Here is what is happening under the hood:
 • [Technical detail 3, e.g., Air-gapped QR transfer handoff for mobile devices without touching a server]
 
 The biggest surprise during testing:
-Running the math directly in the browser via WebCrypto was 10× faster than our initial server API approach—and completely private by default.
+[What surprised you? Only include a speed-up if you measured it, e.g. "Running the maths in the browser was [N]× faster than our server API"]
 
 Live build is up here if you want to test it: [Live App URL]
 
@@ -61,8 +67,8 @@ What’s one UI interaction you find yourself obsessively polishing?
 > **Attachment:** 2D Animated Flowchart (Multicolor or Monochrome Blue).
 
 ```markdown
-We almost went with a standard monolithic API setup for [Project Name].
-Then we ran the numbers on cold starts and cross-region latency.
+We almost went with [the option you didn't choose] for [Project Name].
+Then [what changed your mind].
 
 Here is the actual pipeline we ended up building instead:
 
@@ -70,12 +76,12 @@ Here is the actual pipeline we ended up building instead:
 
 The decision came down to 3 architectural bets:
 
-1. Edge Routing First: Pushing WAF inspection and rate limiting to the CDN edge (<5ms) before traffic ever reaches our application logic.
-2. Token Verification at the Edge: Validating HMAC signatures before hitting the database saved us an estimated 70% of redundant queries.
-3. Decoupled Session Vault: Keeping sensitive credentials air-gapped from transactional storage.
+1. [Decision 1 and why, e.g. "Rate limiting at the edge, before traffic reaches the app"]
+2. [Decision 2 and why: add a number only if you measured it]
+3. [Decision 3 and why]
 
 The takeaway:
-You don't need a heavy Kubernetes cluster for sub-20ms roundtrips. Modern edge runtimes + smart caching give you enterprise reliability with a fraction of the operational overhead.
+[Your real lesson, in one or two sentences]
 
 Full system is live: [Live App URL]
 
@@ -99,9 +105,9 @@ When building the mobile view for [Project Name], we kept running into the same 
 The primary action button was stuck at the top of the viewport, forcing awkward one-handed stretching on large phone screens.
 
 So we rethought the viewport hierarchy:
-• Moved the one-tap trigger down into a persistent, thumb-reach floating bar.
-• Added a subtle haptic-style ripple and immediate entropy feedback so clicks feel physical.
-• Kept the entire modal transfer air-gapped with instant vector QR rendering.
+• [Detail 1, e.g. "Moved the main button into a thumb-reach bar at the bottom"]
+• [Detail 2]
+• [Detail 3]
 
 Good software isn't just about clean code—it's about respecting the physical ergonomics of how people actually hold their devices.
 
@@ -118,20 +124,20 @@ Try clicking through it live: [Live App URL]
 
 ```markdown
 This looked completely fine in local development.
-Then we tested it on a throttled 3G connection and high-DPI mobile screens.
+Then we tested it on [how you tested it, e.g. a throttled 3G connection].
 
 The issues became obvious immediately:
-• Frame drops during rapid state recalculations.
-• Layout shifts when toggling the passphrase drawer.
-• Blur on Retina screens due to unoptimized canvas scaling.
+• [Problem 1 you really saw]
+• [Problem 2]
+• [Problem 3]
 
 Here is how we fixed it:
 
-1. Offloaded the CPU-intensive entropy logic into a dedicated Web Worker so the main UI thread never locks.
-2. Switched our canvas pipeline to native 1080p bilinear sampling with rgb565 quantization to eliminate blur without ballooning asset size.
-3. Locked flex container dimensions to kill layout shift before assets load.
+1. [Fix 1, e.g. "Moved the heavy maths into a Web Worker", only if you did]
+2. [Fix 2]
+3. [Fix 3]
 
-The result: buttery smooth 60fps across every device tier.
+The result: [what changed, measured if you can]
 
 See the live difference here: [Live App URL]
 
@@ -153,13 +159,12 @@ Here is visual proof:
 
 [Attach Walkthrough / Flowchart GIF]
 
-Every single computation you see in this clip:
-• Cryptographic entropy math
-• Passphrase dictionary lookup
-• Air-gapped QR code generation
+Every computation you see in this clip:
+• [Feature 1]
+• [Feature 2]
+• [Feature 3]
 
-Runs entirely client-side using native Web APIs.
-Zero server roundtrips. Zero database queries. Zero cookies. Zero tracking.
+[Where it runs, e.g. "runs entirely in the browser". Only claim "zero tracking" or "no server" if that is true for your app.]
 
 The lesson for builders:
 Before reaching for an external cloud dependency, check if modern browser APIs can already do the job faster, cheaper, and with better privacy.
@@ -185,7 +190,7 @@ Write an authentic, human LinkedIn post about this project:
 - Live App URL: {LIVE_URL}
 - What Was Built: {TECHNICAL_ACTIONS}
 - The Real Pain Point / Why It Started: {PROBLEM_STATEMENT}
-- The Real Numbers / Outcome: {MEASURABLE_OUTCOME}
+- The Real Numbers / Outcome: {MEASURABLE_OUTCOME} (leave empty if you have not measured anything)
 - The Core Insight / Lesson Learned: {KEY_TECHNICAL_INSIGHT}
 - Visual Asset Attached: {ATTACHED_MEDIA} (e.g. 1080p Walkthrough GIF or 2D Architecture Flowchart)
 
@@ -197,6 +202,7 @@ CRITICAL WRITING RULES:
 5. Sound like an experienced developer talking peer-to-peer to other developers over coffee.
 6. Include the live link ({LIVE_URL}) naturally near the end, followed by a thoughtful technical question that invites honest engineering debate.
 7. Include 5-6 clean, relevant developer hashtags.
+8. Use ONLY the facts given above. Never invent numbers, speed-ups, percentages, users, technologies or features. If a fact is missing, write around it or leave a [placeholder] for the author.
 
 Tone: Authentic, technical, concise, reflective, zero marketing fluff.
 ```

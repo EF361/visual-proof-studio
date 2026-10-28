@@ -131,15 +131,6 @@ async function main() {
   ]);
   fs.writeFileSync(path.join(__dirname, 'public', 'favicon.ico'), icoBuffer);
 
-  // Also sync to src/public
-  const srcPublic = path.join(__dirname, 'src', 'public');
-  if (fs.existsSync(srcPublic)) {
-    fs.copyFileSync(path.join(__dirname, 'public', 'favicon.svg'), path.join(srcPublic, 'favicon.svg'));
-    fs.copyFileSync(path.join(__dirname, 'public', 'favicon.ico'), path.join(srcPublic, 'favicon.ico'));
-    fs.copyFileSync(path.join(__dirname, 'public', 'favicon-32x32.png'), path.join(srcPublic, 'favicon-32x32.png'));
-    fs.copyFileSync(path.join(__dirname, 'public', 'apple-touch-icon.png'), path.join(srcPublic, 'apple-touch-icon.png'));
-  }
-
   await browser.close();
   console.log('Successfully generated favicon suite: favicon.svg, favicon.ico, favicon-32x32.png, favicon-16x16.png, apple-touch-icon.png');
 }

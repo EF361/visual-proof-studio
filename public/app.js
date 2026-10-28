@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const instructionsInput = document.getElementById('instructions-input');
   const durationSelect = document.getElementById('duration-select');
   const ratioSelect = document.getElementById('ratio-select');
-  const fitSelect = document.getElementById('fit-select');
+  const badgePositionSelect = document.getElementById('badge-position-select');
   const planBtn = document.getElementById('plan-btn');
   const recordBtn = document.getElementById('record-btn');
   const stepTimeline = document.getElementById('step-timeline');
@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const flowchartBtn = document.getElementById('flowchart-btn');
   const colorModeMulti = document.getElementById('color-mode-multi');
   const colorModeOne = document.getElementById('color-mode-one');
+  const flowchartFooterInput = document.getElementById('flowchart-footer-input');
+  const nodeList = document.getElementById('node-list');
+  const addStageBtn = document.getElementById('add-stage-btn');
+  const removeStageBtn = document.getElementById('remove-stage-btn');
+  const MIN_STAGES = 3;
+  const MAX_STAGES = 8;
   let activeColorMode = 'multicolor';
 
   // Caption Generator Elements
@@ -181,22 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeArchetype = 'shipping'; // from TEMPLATES.md: shipping, decisions, craft, postmortem, contrarian
 
   // 1. SARI Script Auto-Assembly
-  function assembleSariScript() {
-    const s = sariSituation ? sariSituation.value.trim() : '';
-    const a = sariAction ? sariAction.value.trim() : '';
-    const r = sariResult ? sariResult.value.trim() : '';
-    const i = sariInsight ? sariInsight.value.trim() : '';
-
-    if (instructionsInput) {
-      // Use the action lines as the primary interaction script, appending SARI context
-      instructionsInput.value = a || `${s}\n${r}\n${i}`;
-    }
-  }
-
   [sariSituation, sariAction, sariResult, sariInsight].forEach(el => {
     if (el) {
       el.addEventListener('input', () => {
-        assembleSariScript();
         generateSmartCaption();
       });
     }
@@ -263,6 +256,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Flowchart stage list (3-8 stages, in the order the arrows follow)
+  function updateStageButtons() {
+    const count = nodeList.children.length;
+    addStageBtn.disabled = count >= MAX_STAGES;
+    removeStageBtn.disabled = count <= MIN_STAGES;
+  }
+
+  function addStageRow(value = '') {
+    if (nodeList.children.length >= MAX_STAGES) return;
+    const idx = nodeList.children.length + 1;
+    const row = document.createElement('div');
+    row.className = 'node-editor-item';
+    const num = document.createElement('span');
+    num.className = 'step-num';
+    num.textContent = idx;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'node-input';
+    input.value = value;
+    input.placeholder = `Stage ${idx}`;
+    input.setAttribute('aria-label', `Stage ${idx}`);
+    row.append(num, input);
+    nodeList.appendChild(row);
+    updateStageButtons();
+  }
+
+  function resetStageRows() {
+    nodeList.innerHTML = '';
+    for (let i = 0; i < MIN_STAGES; i++) addStageRow();
+  }
+
+  function getStageValues() {
+    return Array.from(nodeList.querySelectorAll('.node-input')).map(i => i.value.trim()).filter(Boolean);
+  }
+
+  if (nodeList && addStageBtn && removeStageBtn) {
+    resetStageRows();
+    addStageBtn.addEventListener('click', () => addStageRow());
+    removeStageBtn.addEventListener('click', () => {
+      if (nodeList.children.length > MIN_STAGES) nodeList.lastElementChild.remove();
+      updateStageButtons();
+    });
+  }
+
   // 6. Showcase Synthesizer Engine (from TEMPLATES.md)
   function synthesizeShowcaseFromTemplate() {
     const url = targetUrlInput.value.trim() || 'https://your-production-app.vercel.app';
@@ -280,46 +317,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let actionSteps = [];
     let result = '';
     let insight = '';
-    let flowTitle = '';
-    let flowStages = [];
 
     if (lower.includes('pass') || lower.includes('crypto') || lower.includes('vault') || lower.includes('entropy')) {
       situation = 'Most security and utility tools send sensitive data over HTTP APIs or rely on static screenshots where users cannot verify cryptographic safety or live UX.';
       actionSteps = [
-        '1. Inspect desktop split-panel with real-time entropy calculation (~105 bits).',
+        '1. Inspect desktop split-panel with real-time entropy estimate.',
         '2. Execute one-tap generation with smooth cursor glide & ripple feedback.',
         '3. Toggle passphrase mode showing dictionary word separation.',
         '4. Open air-gapped QR code SVG modal for offline mobile transfer.',
         '5. Highlight responsive mobile viewport with sticky thumb-reach bar.'
       ];
-      result = 'Crystal-clear 1080p native walkthrough under 18 seconds showing authentic interactions with zero blur.';
-      insight = 'Cryptographic entropy calculated 100% in-browser via WebCrypto API — zero server roundtrips, zero data leaks, air-gapped security.';
-      flowTitle = 'Air-Gapped Client-Side Cryptographic Pipeline';
-      flowStages = [
-        'Web Client UI (React / Next.js)',
-        'Local WebCrypto Engine (Native API)',
-        'Entropy Estimator (~105 bits)',
-        'Air-Gapped QR Encoder (SVG Vector)',
-        'Local Memory Vault (Zero Storage)'
-      ];
+      result = '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+      insight = '[Your real lesson learned, in one sentence]';
     } else if (lower.includes('ai') || lower.includes('rag') || lower.includes('llm') || lower.includes('vector')) {
       situation = 'Standard LLM interfaces hallucinate on domain knowledge and freeze the UI during heavy model inference.';
       actionSteps = [
         '1. Enter domain prompt in clean distraction-free workspace.',
-        '2. Trigger sub-10ms top-K vector similarity search across indexed knowledge.',
+        '2. Trigger top-K vector similarity search across indexed knowledge.',
         '3. Inspect dynamic context chunk injection into model prompt.',
         '4. Stream synthesized answers with verified inline source citations.'
       ];
-      result = 'Reduced hallucinations to near zero while achieving sub-800ms time-to-first-token streaming.';
-      insight = 'Chunking domain documents into semantic 300-token windows with 50-token overlaps yields 40% higher precision than raw text chunks.';
-      flowTitle = 'Real-Time AI & RAG Inference Pipeline';
-      flowStages = [
-        'User Query & UI Client (Next.js)',
-        'Semantic Embedding Service (FastAPI)',
-        'Vector DB Search (Pinecone / Milvus)',
-        'LLM Reasoning Engine (Gemini Pro)',
-        'Streaming Response (Server-Sent Events)'
-      ];
+      result = '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+      insight = '[Your real lesson learned, in one sentence]';
     } else if (lower.includes('queue') || lower.includes('worker') || lower.includes('kafka') || lower.includes('event')) {
       situation = 'Synchronous HTTP processing fails under sudden burst traffic, causing gateway timeouts and lost customer transactions.';
       actionSteps = [
@@ -328,16 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '3. Dynamically scale worker pool based on consumer topic lag.',
         '4. Broadcast completion state back to connected clients via WebSockets.'
       ];
-      result = 'Zero dropped requests during 10× traffic spikes with average job execution latency under 120ms.';
-      insight = 'Decoupling ingestion from execution through durable event queues protects primary databases from connection exhaustion.';
-      flowTitle = 'High-Throughput Event Queue & Worker Pipeline';
-      flowStages = [
-        'Webhook Ingestion API (Fastify)',
-        'Message Broker (Kafka / RabbitMQ)',
-        'Async Worker Pool (Go / Node.js)',
-        'Ephemeral Store (Redis Key-Value)',
-        'Live Client Notification (WebSockets)'
-      ];
+      result = '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+      insight = '[Your real lesson learned, in one sentence]';
     } else if (lower.includes('mobile') || lower.includes('offline') || lower.includes('sync') || lower.includes('flutter')) {
       situation = 'Mobile users on unstable network connections suffer from frozen spinners and lost form drafts.';
       actionSteps = [
@@ -346,16 +357,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '3. Reconcile concurrent edits using state-based CRDT delta synchronization.',
         '4. Push background delta changes over GraphQL subscriptions upon reconnection.'
       ];
-      result = 'Zero-latency offline interactions with automated bi-directional cloud synchronization.';
-      insight = 'Optimistic local persistence paired with vector clock versioning turns flaky network conditions from an error into an invisible background detail.';
-      flowTitle = 'Offline-First Mobile Sync Architecture';
-      flowStages = [
-        'Mobile Client (Flutter / Native)',
-        'Local SQLite Store (Drift / SQLCipher)',
-        'Conflict-Free Sync Engine (CRDT)',
-        'GraphQL API Gateway (Apollo)',
-        'Cloud Database (PostgreSQL)'
-      ];
+      result = '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+      insight = '[Your real lesson learned, in one sentence]';
     } else {
       const cleanDesc = explanation || 'interactive modern dashboard with real-time state feedback';
       situation = `Most showcases for ${cleanDesc} only show static images where users can’t feel the real-time speed, responsiveness, or core UX polish.`;
@@ -365,16 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '3. Demonstrate core differentiating capability and real-time state recalculation.',
         '4. Switch viewports or open secondary modal to showcase responsive ergonomics.'
       ];
-      result = 'Fluid 1080p native walkthrough under 18 seconds capturing real-time responsiveness with zero frame drops.';
-      insight = 'Keeping core computations client-side via native Web APIs eliminates unnecessary roundtrips and protects user data.';
-      flowTitle = `${cleanDesc.split(' ').slice(0, 4).join(' ')} System Architecture`;
-      flowStages = [
-        'Frontend Client (React / Next.js)',
-        'Edge Routing & WAF (Vercel / Cloudflare)',
-        'Core Execution Logic (API Worker)',
-        'Session Vault & State (WebCrypto / Redis)',
-        'Persistent Database (PostgreSQL)'
-      ];
+      result = '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+      insight = '[Your real lesson learned, in one sentence]';
     }
 
     // Populate SARI textareas
@@ -382,18 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sariAction) sariAction.value = actionSteps.join('\n');
     if (sariResult) sariResult.value = result;
     if (sariInsight) sariInsight.value = insight;
-    assembleSariScript();
-
-    // Populate Flowchart fields
-    if (flowchartTitleInput && !flowchartTitleInput.value.trim()) {
-      flowchartTitleInput.value = flowTitle;
-    }
-    const nodeInputs = document.querySelectorAll('.node-input');
-    if (nodeInputs.length > 0 && flowStages.length > 0) {
-      nodeInputs.forEach((inp, idx) => {
-        if (flowStages[idx]) inp.value = flowStages[idx];
-      });
-    }
 
     // Update Active Showcase Summary Card
     if (activeScenarioTitle) activeScenarioTitle.textContent = explanation ? (explanation.length > 50 ? explanation.substring(0, 47) + '...' : explanation) : 'Custom Dashboard Showcase';
@@ -490,7 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (instructionsInput) instructionsInput.value = '';
       if (captionPromptInput) captionPromptInput.value = '';
       if (flowchartTitleInput) flowchartTitleInput.value = '';
-      document.querySelectorAll('.node-input').forEach(i => i.value = '');
+      if (flowchartFooterInput) flowchartFooterInput.value = '';
+      if (nodeList) resetStageRows();
       if (activeScenarioBadge) activeScenarioBadge.textContent = 'Custom Project Showcase';
       if (activeScenarioTargetBadge) activeScenarioTargetBadge.textContent = 'Awaiting URL...';
       if (activeScenarioTitle) activeScenarioTitle.textContent = 'Ready for Your Dashboard';
@@ -578,8 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const customPrompt = captionPromptInput ? captionPromptInput.value.trim() : '';
     const situation = (sariSituation ? sariSituation.value.trim() : '') || 'Static screenshots weren’t cutting it — people see a GitHub link, but can’t feel the real-time latency or UX.';
     const action = (sariAction ? sariAction.value.trim() : '') || 'Engineered an authentic visual walkthrough with automated cursor tracking and real-time state feedback.';
-    const result = (sariResult ? sariResult.value.trim() : '') || 'Crystal-clear 1080p recording under 18 seconds with zero blur and fluid 60fps pacing.';
-    const insight = (sariInsight ? sariInsight.value.trim() : '') || 'Keeping heavy computations client-side via native Web APIs eliminates server roundtrips and protects user privacy by default.';
+    const result = (sariResult ? sariResult.value.trim() : '') || '[Your real result: only numbers you measured, e.g. "first answer in 1.2s"]';
+    const insight = (sariInsight ? sariInsight.value.trim() : '') || '[Your real lesson learned, in one sentence]';
 
     // Attempt n8n AI Agent Webhook call if configured
     if (n8nWebhookUrl) {
@@ -588,10 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (n8nStatusDot) n8nStatusDot.className = 'n8n-status-dot testing';
 
       try {
-        const flowchartNodes = Array.from(document.querySelectorAll('.node-input'))
-          .map(inp => inp.value.trim() || inp.placeholder)
-          .filter(Boolean)
-          .join(' -> ');
+        const flowchartNodes = getStageValues().join(' -> ');
 
         const isFlowchartActive = modeFlowchartView && !modeFlowchartView.classList.contains('hidden');
 
@@ -656,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Archetype 1: The "Late-Night Shipping Log" (Raw Builder Journey)
     if (activeArchetype === 'shipping') {
-      postText = `I spent 3 nights rewriting this one flow because static screenshots weren't cutting it.
+      postText = `I spent [how long?] rewriting this one flow because static screenshots weren't cutting it.
 
 Whenever I shared our progress, people would say: "Looks nice, what does it actually do?"
 Links to GitHub got bookmarked and forgotten. Screenshots didn't show the real-time latency or the interaction feel.
@@ -681,8 +662,8 @@ ${activeTags || '#BuildInPublic #IndieHacker #WebDev #NextJS #Frontend'}`;
 
     // Archetype 2: The "Why We Chose X Over Y" (Engineering Decision Journal)
     } else if (activeArchetype === 'decisions') {
-      postText = `We almost went with a standard monolithic setup for this project.
-Then we ran the numbers on cold starts, latency, and cross-region execution.
+      postText = `We almost went with [the option you didn't choose] for this project.
+Then [what changed your mind].
 
 Here is the actual pipeline we ended up building instead:
 
@@ -730,7 +711,7 @@ ${activeTags || '#ProductDesign #UIUX #FrontendDev #WebDevelopment #DesignEngine
     // Archetype 4: The "Unfiltered Post-Mortem / What Broke" (Honest Debugging Log)
     } else if (activeArchetype === 'postmortem') {
       postText = `This looked completely fine in local development.
-Then we tested it on throttled connections and high-DPI viewports.
+Then we tested it on [how you tested it, e.g. a slow phone connection].
 
 The issues became obvious immediately:
 ${situation}
@@ -783,7 +764,7 @@ ${activeTags || '#WebDevelopment #JavaScript #SoftwareArchitecture #IndieHacker 
 
   // 9. Prompt Templates & Prompt Manager Modal Logic
   const DEFAULT_TEMPLATES = {
-    launch: `I spent the week building something I genuinely needed: {url}
+    launch: `I spent [how long?] building something I genuinely needed: {url}
 
 {situation}
 
@@ -802,18 +783,18 @@ What is one UI or architecture detail you find yourself obsessively polishing?
 
 #BuildInPublic #WebDevelopment #FrontendEngineering #NextJS #UIUX #SoftwareEngineering`,
 
-    architecture: `Behind every smooth 60fps user experience is an intentional, low-latency pipeline.
+    architecture: `Behind every smooth user experience is a pipeline someone thought hard about.
 
-Here is the exact request lifecycle & architecture powering {url}:
+Here is how {url} actually works:
 
-[Start Client] ➔ [Edge CDN & WAF] ➔ [API Gateway] ➔ [Distributed Storage & Vault] ➔ [200 OK]
+[Your real pipeline, e.g. Settings ➔ Secure Random ➔ Password]
 
 {situation}
 
 Why we engineered it this way:
-• Edge Routing First: WAF inspection & rate limiting before hitting backend logic
-• Token Verification at Edge: Eliminates redundant database hits
-• Decoupled Vault: Air-gapped verification & Zero-Knowledge tokens
+• [Design choice 1 and why]
+• [Design choice 2 and why]
+• [Design choice 3 and why]
 
 The result: {result}
 
@@ -848,9 +829,9 @@ Try the build and break it: {url}
 {situation}
 
 So we re-thought the viewport ergonomics:
-• Persistent thumb-reach trigger bar
-• Micro-interaction ripples with zero frame drops
-• Air-gapped vector modal transitions
+• [Detail 1 you polished]
+• [Detail 2 you polished]
+• [Detail 3 you polished]
 
 The difference: {result}
 
@@ -936,6 +917,14 @@ Try clicking through it live: {url}
     const textToCopy = captionEditor.value.trim();
     const targetUrl = targetUrlInput.value.trim() || 'https://kind-borg-pearl.vercel.app';
 
+    // Never post template placeholders (or made-up example facts) by accident
+    const placeholder = textToCopy.match(/\[[^\]\n]{2,}\]/);
+    if (placeholder) {
+      showToast(`Replace or delete ${placeholder[0].slice(0, 40)} and any other [bracketed] parts before posting.`);
+      captionEditor.focus();
+      return;
+    }
+
     try {
       if (textToCopy) {
         await navigator.clipboard.writeText(textToCopy);
@@ -965,43 +954,37 @@ Try clicking through it live: {url}
     }, 4000);
   }
 
-  // 12. Safe Step Plan Fetcher
+  // 12. Step Plan Fetcher: shows exactly what the recorder will do, or why it can't
   async function fetchPlan() {
-    assembleSariScript();
     const prompt = instructionsInput.value.trim();
     const targetUrl = targetUrlInput.value.trim();
-    const duration = parseInt(durationSelect.value, 10);
+    currentPlan = null;
 
     try {
       const res = await fetch('/api/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, targetUrl, duration })
+        body: JSON.stringify({ prompt, targetUrl })
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.plan) {
-          currentPlan = data.plan;
-          renderTimeline(data.plan.steps);
-          return;
-        }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.plan) {
+        currentPlan = data.plan;
+        renderTimeline(data.plan.steps);
+        return 'ok';
       }
-    } catch (_) {}
+      renderPlanError(data.error || 'The step planner could not read these steps.');
+      return res.status === 400 ? 'invalid' : 'offline';
+    } catch (_) {
+      renderPlanError('The step planner is not reachable. Start the local studio with npm start.');
+      return 'offline';
+    }
+  }
 
-    // Fallback default plan
-    currentPlan = {
-      title: 'Visual Proof Walkthrough',
-      targetUrl: targetUrl || 'https://intelligent-curie-alpha.vercel.app/',
-      estimatedDurationSec: duration,
-      steps: [
-        { id: '1', name: 'Desktop Split-Panel & Sticky Settings', durationMs: 3200 },
-        { id: '2', name: 'Quick One-Tap Generation', durationMs: 3200 },
-        { id: '3', name: 'Passphrase Mode Toggle', durationMs: 4000 },
-        { id: '4', name: 'Vector QR Code SVG Modal', durationMs: 3600 },
-        { id: '5', name: 'Mobile Viewport: Sticky Thumb Bar', durationMs: 4000 }
-      ]
-    };
-    renderTimeline(currentPlan.steps);
+  function describeStepAction(step) {
+    const action = step.click ? 'Click' : step.point ? 'Point' : 'View';
+    const target = step.click || step.point;
+    const what = !target ? '' : target.selector || target.text || `${target.role} "${target.name}"`;
+    return `${step.viewport === 'mobile' ? 'Mobile · ' : ''}${action}${what ? `: ${what}` : ''}`;
   }
 
   function renderTimeline(steps) {
@@ -1010,21 +993,40 @@ Try clicking through it live: {url}
     steps.forEach((step, idx) => {
       const item = document.createElement('div');
       item.className = 'step-item';
-      item.innerHTML = `
-        <span class="step-index-badge">${idx + 1}</span>
-        <span class="step-item-desc">${step.caption || step.name}</span>
-        <span class="step-item-duration">${Math.round((step.durationMs || 3200) / 1000)}s</span>
-      `;
+      const badge = document.createElement('span');
+      badge.className = 'step-index-badge';
+      badge.textContent = idx + 1;
+      const desc = document.createElement('span');
+      desc.className = 'step-item-desc';
+      desc.textContent = step.caption;
+      const action = document.createElement('span');
+      action.className = 'step-item-duration';
+      action.textContent = describeStepAction(step);
+      item.append(badge, desc, action);
       stepTimeline.appendChild(item);
     });
   }
 
+  function renderPlanError(message) {
+    if (!stepTimeline) return;
+    stepTimeline.innerHTML = '';
+    const item = document.createElement('div');
+    item.className = 'step-plan-error';
+    item.setAttribute('role', 'alert');
+    item.textContent = message;
+    stepTimeline.appendChild(item);
+  }
+
   // 13. RECORD WALKTHROUGH GIF & VIDEO (Live Backend Execution)
   recordBtn.addEventListener('click', async () => {
-    assembleSariScript();
-    if (!currentPlan) await fetchPlan();
+    recordBtn.disabled = true;
+    if (await fetchPlan() === 'invalid') {
+      recordBtn.disabled = false;
+      showToast('Fix the recording steps first (see the step list).');
+      return;
+    }
 
-    startRecordingUI('Synthesizing Visual Proof Walkthrough...');
+    startRecordingUI('Recording your walkthrough...');
 
     let progress = 15;
     const progressTimer = setInterval(() => {
@@ -1035,8 +1037,8 @@ Try clicking through it live: {url}
           progressStatusTitle.textContent = 'Navigating & Executing Playwright Browser Script...';
           progressStatusDesc.textContent = 'Recording animated cursor motion, click ripples, and viewport resizes.';
         } else if (progress >= 65) {
-          progressStatusTitle.textContent = 'Encoding 1080p High-Precision GIF & Video...';
-          progressStatusDesc.textContent = 'Applying rgb565 high fidelity quantization and timing calibration.';
+          progressStatusTitle.textContent = 'Encoding GIF & Video...';
+          progressStatusDesc.textContent = 'Building the GIF and MP4 from the recorded frames.';
         }
       }
     }, 1200);
@@ -1047,12 +1049,11 @@ Try clicking through it live: {url}
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          plan: currentPlan,
           prompt: instructionsInput.value.trim(),
           targetUrl: targetUrl,
-          duration: parseInt(durationSelect.value, 10),
+          duration: durationSelect.value ? parseInt(durationSelect.value, 10) : null,
           aspectRatio: ratioSelect ? ratioSelect.value : '1:1',
-          fitStrategy: fitSelect ? fitSelect.value : 'crop'
+          badgePosition: badgePositionSelect ? badgePositionSelect.value : 'bottom'
         })
       });
 
@@ -1065,6 +1066,11 @@ Try clicking through it live: {url}
           showResultUI(data);
           return;
         }
+      } else if (res.status === 400 || res.status === 422) {
+        // Bad steps, unsafe URL, or a step that failed on the page: say so, never fake it
+        const data = await res.json().catch(() => ({}));
+        showFailureUI(data.error || 'Recording failed.');
+        return;
       }
     } catch (err) {
       console.warn('Backend live generation error:', err);
@@ -1075,21 +1081,21 @@ Try clicking through it live: {url}
 
     // Fallback to pre-generated asset matching the selected aspect ratio
     const chosenRatio = ratioSelect ? ratioSelect.value : '1:1';
-    let fallbackUrl = '/outputs/intelligent_curie_1x1.gif';
-    let fallbackVideo = '/outputs/intelligent_curie_1x1.webm';
+    let fallbackUrl = '/samples/intelligent_curie_1x1.gif';
+    let fallbackVideo = '/samples/intelligent_curie_1x1.webm';
     let fallbackSize = 1751120;
     let fallbackVidSize = 839168;
     let fallbackRes = '1080 × 1080';
 
     if (chosenRatio === '4:5') {
-      fallbackUrl = '/outputs/intelligent_curie_4x5.gif';
-      fallbackVideo = '/outputs/intelligent_curie_4x5.webm';
+      fallbackUrl = '/samples/intelligent_curie_4x5.gif';
+      fallbackVideo = '/samples/intelligent_curie_4x5.webm';
       fallbackSize = 1772140;
       fallbackVidSize = 1092800;
       fallbackRes = '1080 × 1350';
     } else if (chosenRatio === '1.91:1') {
-      fallbackUrl = '/outputs/intelligent_curie_landscape.gif';
-      fallbackVideo = '/outputs/intelligent_curie_landscape.webm';
+      fallbackUrl = '/samples/intelligent_curie_landscape.gif';
+      fallbackVideo = '/samples/intelligent_curie_landscape.webm';
       fallbackSize = 1457660;
       fallbackVidSize = 503600;
       fallbackRes = '1200 × 627';
@@ -1112,9 +1118,13 @@ Try clicking through it live: {url}
 
   // 14. GENERATE ARCHITECTURE FLOWCHART (Live Backend Execution)
   flowchartBtn.addEventListener('click', async () => {
-    startRecordingUI('Synthesizing 2D Architecture Flowchart with Animated Flows...');
+    const stages = getStageValues();
+    if (stages.length < MIN_STAGES || stages.length > MAX_STAGES) {
+      showToast(`Please fill in ${MIN_STAGES}–${MAX_STAGES} stages (you have ${stages.length}).`);
+      return;
+    }
 
-    const stages = Array.from(document.querySelectorAll('.node-input')).map(i => i.value.trim()).filter(Boolean);
+    startRecordingUI('Rendering your flowchart...');
 
     let progress = 20;
     const progressTimer = setInterval(() => {
@@ -1130,6 +1140,7 @@ Try clicking through it live: {url}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: flowchartTitleInput.value.trim(),
+          footer: flowchartFooterInput ? flowchartFooterInput.value.trim() : '',
           colorMode: activeColorMode,
           stages
         })
@@ -1144,6 +1155,11 @@ Try clicking through it live: {url}
           showResultUI(data);
           return;
         }
+      } else if (res.status === 400) {
+        // Input problem: tell the user instead of silently showing a sample
+        const data = await res.json().catch(() => ({}));
+        showFailureUI(data.error || 'The flowchart input was not accepted.', false);
+        return;
       }
     } catch (err) {
       console.warn('Flowchart generation error:', err);
@@ -1153,18 +1169,18 @@ Try clicking through it live: {url}
     progressBarFill.style.width = '100%';
 
     const isOneColor = activeColorMode === 'onecolor';
-    const flowGif = isOneColor ? '/outputs/flowchart_onecolor.gif' : '/outputs/flowchart_multicolor.gif';
-    const flowVid = isOneColor ? '/outputs/flowchart_onecolor.webm' : '/outputs/flowchart_multicolor.webm';
-    const flowSize = isOneColor ? 1793000 : 1887000;
-    const flowVidSize = isOneColor ? 812000 : 840000;
+    const flowGif = isOneColor ? '/samples/flowchart_onecolor.gif' : '/samples/flowchart_multicolor.gif';
+    const flowVid = isOneColor ? '/samples/flowchart_onecolor.webm' : '/samples/flowchart_multicolor.webm';
+    const flowSize = isOneColor ? 3614789 : 3639612;
+    const flowVidSize = isOneColor ? 400962 : 543606;
 
     showResultUI({
       gifUrl: flowGif,
       videoUrl: flowVid,
       gifFilename: `flowchart_${activeColorMode}.gif`,
       videoFilename: `flowchart_${activeColorMode}.webm`,
-      durationSec: 12,
-      frameCount: 34,
+      durationSec: 7,
+      frameCount: 50,
       size: flowSize,
       videoSize: flowVidSize,
       resolution: '1080 × 740',
@@ -1172,6 +1188,15 @@ Try clicking through it live: {url}
       demo: true
     });
   });
+
+  function showFailureUI(message, showInSteps = true) {
+    recordBtn.disabled = false;
+    flowchartBtn.disabled = false;
+    recordingProgress.classList.add('hidden');
+    previewDisplay.classList.remove('hidden');
+    if (showInSteps) renderPlanError(message);
+    showToast(message.split('\n')[0]);
+  }
 
   function startRecordingUI(titleText) {
     recordBtn.disabled = true;
@@ -1193,7 +1218,7 @@ Try clicking through it live: {url}
 
     // Add cache-busting timestamp query to ensure fresh image loads
     const cacheBust = `?t=${Date.now()}`;
-    const safeGifUrl = data.gifUrl || '/outputs/intelligent_curie_1x1.gif';
+    const safeGifUrl = data.gifUrl || '/samples/intelligent_curie_1x1.gif';
     const safeVideoUrl = data.videoUrl || (safeGifUrl.replace(/\.gif$/, '.webm'));
 
     gifResultImg.src = safeGifUrl + cacheBust;
@@ -1280,8 +1305,8 @@ Try clicking through it live: {url}
 
   // Pre-load default output on startup
   showResultUI({
-    gifUrl: '/outputs/intelligent_curie_1x1.gif',
-    videoUrl: '/outputs/intelligent_curie_1x1.webm',
+    gifUrl: '/samples/intelligent_curie_1x1.gif',
+    videoUrl: '/samples/intelligent_curie_1x1.webm',
     gifFilename: 'visual_proof_1x1.gif',
     videoFilename: 'visual_proof_1x1.webm',
     durationSec: 17,
@@ -1296,7 +1321,6 @@ Try clicking through it live: {url}
   planBtn.addEventListener('click', fetchPlan);
 
   // Initialize
-  assembleSariScript();
   fetchPlan();
   generateSmartCaption();
 });

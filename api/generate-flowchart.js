@@ -11,20 +11,20 @@ module.exports = (req, res) => {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const colorMode = body.colorMode === 'onecolor' ? 'onecolor' : 'multicolor';
 
-    let gifUrl = '/outputs/flowchart_multicolor.gif';
-    let videoUrl = '/outputs/flowchart_multicolor.webm';
+    let gifUrl = '/samples/flowchart_multicolor.gif';
+    let videoUrl = '/samples/flowchart_multicolor.webm';
     let gifFilename = 'flowchart_multicolor_techstack.gif';
     let videoFilename = 'flowchart_multicolor_techstack.webm';
-    let size = 1845493;
-    let videoSize = 840000;
+    let size = 3639612;
+    let videoSize = 543606;
 
     if (colorMode === 'onecolor') {
-      gifUrl = '/outputs/flowchart_onecolor.gif';
-      videoUrl = '/outputs/flowchart_onecolor.webm';
+      gifUrl = '/samples/flowchart_onecolor.gif';
+      videoUrl = '/samples/flowchart_onecolor.webm';
       gifFilename = 'flowchart_onecolor_minimalist.gif';
       videoFilename = 'flowchart_onecolor_minimalist.webm';
-      size = 1761607;
-      videoSize = 812000;
+      size = 3614789;
+      videoSize = 400962;
     }
 
     return res.status(200).json({
@@ -35,11 +35,11 @@ module.exports = (req, res) => {
       videoFilename,
       size,
       videoSize,
-      resolution: '1080 × 620',
-      frameCount: 34,
-      durationSec: 12,
+      resolution: '1080 × 740',
+      frameCount: 50,
+      durationSec: 7,
       colorMode,
-      title: body.title || 'Enterprise Serverless & Edge Pipeline',
+      title: 'Demo App: How a Password Is Made',
       clientSynthesize: false,
       demo: true
     });

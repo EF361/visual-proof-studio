@@ -230,10 +230,11 @@
                   </div>
                 </div>
 
-              <!-- Assembled Script Preview -->
+              <!-- Recording steps: what the recorder actually clicks -->
               <div class="sari-assembled">
-                <div class="sari-assembled-label">Assembled Interaction Script (Sent to Recorder)</div>
-                <textarea id="instructions-input" rows="3" class="textarea-code" placeholder="Your SARI script assembles here automatically..."></textarea>
+                <label class="sari-assembled-label" for="instructions-input">Recording Steps (one per line, sent to the recorder)</label>
+                <p class="field-hint">Put the button text in quotes or a CSS selector in backticks. Start a line with <code>Mobile:</code> to switch to phone size. Leave empty to use the built-in demo steps on <code>/demo</code>.</p>
+                <textarea id="instructions-input" rows="4" class="textarea-code" placeholder='Click "Generate"&#10;Point at "Strength"&#10;Passphrase mode | Click "Passphrase"&#10;Mobile: Click `#mobile-generate-btn`'></textarea>
               </div>
             </div>
 
@@ -261,20 +262,21 @@
                     </select>
                   </div>
                   <div class="meta-field">
-                    <label>Runtime Duration</label>
+                    <label for="duration-select">Runtime Duration</label>
                     <select id="duration-select" class="select-box">
-                      <option value="18" selected>15–20s (Ideal for LinkedIn)</option>
-                      <option value="12">10–12s (Fast Teaser)</option>
-                      <option value="25">25s (Detailed Flow)</option>
+                      <option value="" selected>Real timing (as recorded)</option>
+                      <option value="12">Fit to 12s (Fast Teaser)</option>
+                      <option value="18">Fit to 18s</option>
+                      <option value="25">Fit to 25s (Detailed Flow)</option>
                     </select>
                   </div>
                 </div>
                 <div class="config-meta-row" style="margin-top: 0.5rem;">
                   <div class="meta-field">
-                    <label>Fit Strategy</label>
-                    <select id="fit-select" class="select-box">
-                      <option value="crop" selected>Smart Center-Crop (Zero Squishing)</option>
-                      <option value="contain">Contain & Frame</option>
+                    <label for="badge-position-select">Caption Badge</label>
+                    <select id="badge-position-select" class="select-box">
+                      <option value="bottom" selected>Bottom</option>
+                      <option value="top">Top (keeps mobile action bars visible)</option>
                     </select>
                   </div>
                   <div class="meta-field">
@@ -309,7 +311,12 @@
           <div id="mode-flowchart-view" class="mode-view hidden">
             <div class="input-block">
               <label class="field-label" for="flowchart-title-input">System / Pipeline Title</label>
-              <input type="text" id="flowchart-title-input" value="" placeholder="e.g. Real-Time Cryptographic Pipeline or Edge Serverless Architecture" class="text-input">
+              <input type="text" id="flowchart-title-input" value="" placeholder="e.g. How a Password Is Made" class="text-input">
+            </div>
+
+            <div class="input-block">
+              <label class="field-label" for="flowchart-footer-input">Footer Note (optional)</label>
+              <input type="text" id="flowchart-footer-input" value="" maxlength="40" placeholder="A true fact, e.g. 100% client-side" class="text-input">
             </div>
 
             <div class="input-block">
@@ -327,31 +334,12 @@
             </div>
 
             <div class="flowchart-nodes-editor">
-              <label class="field-label">Sequential Stages (Connected with Animated Arrows)</label>
-              <div class="node-editor-item">
-                <span class="step-num">1</span>
-                <input type="text" value="" placeholder="Stage 1: Web Client (React / Next.js)" class="node-input" data-idx="0">
-                <span class="badge-tag tag-cyan">React</span>
-              </div>
-              <div class="node-editor-item">
-                <span class="step-num">2</span>
-                <input type="text" value="" placeholder="Stage 2: Edge CDN & WAF (Vercel / Cloudflare)" class="node-input" data-idx="1">
-                <span class="badge-tag tag-white">Edge</span>
-              </div>
-              <div class="node-editor-item">
-                <span class="step-num">3</span>
-                <input type="text" value="" placeholder="Stage 3: API Gateway (Node.js / Express)" class="node-input" data-idx="2">
-                <span class="badge-tag tag-green">API</span>
-              </div>
-              <div class="node-editor-item">
-                <span class="step-num">4</span>
-                <input type="text" value="" placeholder="Stage 4: Auth & Session Vault (OAuth2 / WebCrypto)" class="node-input" data-idx="3">
-                <span class="badge-tag tag-red">Vault</span>
-              </div>
-              <div class="node-editor-item">
-                <span class="step-num">5</span>
-                <input type="text" value="" placeholder="Stage 5: Distributed Storage (PostgreSQL & Redis)" class="node-input" data-idx="4">
-                <span class="badge-tag tag-blue">Storage</span>
+              <label class="field-label">Stages in Order (3–8)</label>
+              <p class="field-hint">Add an optional sub-label in brackets, e.g. <code>Secure Random (crypto.getRandomValues)</code>.</p>
+              <div id="node-list"></div>
+              <div class="node-list-actions">
+                <button type="button" id="add-stage-btn" class="pill-btn">+ Add Stage</button>
+                <button type="button" id="remove-stage-btn" class="pill-btn">− Remove Last</button>
               </div>
             </div>
 
@@ -428,7 +416,7 @@
               <label class="field-label" for="caption-prompt-input">Caption Focus & Custom Instructions</label>
               <span class="field-hint">Modify prompt to tailor your voice</span>
             </div>
-            <textarea id="caption-prompt-input" rows="2" class="textarea-code" placeholder="Custom instructions (e.g. emphasize real-time entropy calculation, zero latency, and responsive design)...">Emphasize the cryptographic security, real-time client-side entropy calculation (~105 bits), responsive mobile thumb reach bar, and instant air-gapped QR modal.</textarea>
+            <textarea id="caption-prompt-input" rows="2" class="textarea-code" placeholder="Custom instructions, using only true facts about your app (e.g. emphasize the passphrase mode and the mobile layout)..."></textarea>
           </div>
 
           <div class="caption-generate-action-row">
