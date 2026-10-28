@@ -1,106 +1,129 @@
-# kind-borg ![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-yellow) ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green) ![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-blue) ![Docker](https://img.shields.io/badge/Containers-Docker-blue) ![License](https://img.shields.io/badge/License-MIT-lightgrey)
+# VisualProof Studio
 
-## Executive Summary
-**kind-borg** automates complex browser workflows using Puppeteer and seamlessly integrates video recording and transcoding with FFmpeg. Designed for precision and reliability, the project provides an efficient toolchain for capturing, processing, and delivering browser-rendered content, with a strong focus on environmental controls, security, and reproducibility.
+Record a real walkthrough of your web app and an animated flowchart of how it works, as **GIF and MP4**, ready to attach to a LinkedIn post.
 
-## Key Features
-- 🔒 **SSRF Protection & Security Hardening**: Implements strict URL validation, including support for IPv6, DNS rebinding protection, and redirect validation.
-- 🖥️ **Browser Automation**: Utilizes Puppeteer with Chromium to manage headless browser sessions for dynamic content rendering.
-- 🎥 **Video Capture & Transcoding**: Reliable integration with FFmpeg for high-quality video encoding while avoiding partial/incomplete outputs via streaming pipelines with backpressure handling.
-- 📦 **Dockerized Environment**: Ensures isolation, deterministic builds, and resource constraints for Chromium and FFmpeg with non-root execution and minimal container privileges.
-- 📊 **Deterministic Testing**: Comprehensive Jest-based tests validate output codec compatibility, audio sync, frame accuracy, dimensions, and duration consistency.
-- 🚀 **Continuous Integration (CI)**: Automated workflows using GitHub Actions for linting, testing, and deployment.
-- 🛠️ **Resource Optimization**: Managed large assets and recordings via external storage or release artifacts, reducing committed repository size.
-- 🔍 **Debug-Friendly Traceability**: Logs detailed information on browser startup failures, encoding interruptions, and cleanup operations.
-- 📓 **Reproducibility**: Thorough documentation of concurrency limits, edge case handling, and platform-specific codec behaviors.
+It opens your site in a headless Chromium browser (Playwright), moves a visible cursor, clicks the buttons you name, and shows a short caption for each step.
 
----
-
-## Architecture & Workflow
-
-The following flowchart illustrates the high-level design and operational workflow of **kind-borg**, from input URL validation to video encoding and test verification:
+## How it works
 
 ```mermaid
 flowchart TD
-    A["User Input (Target URL)"] -->|"Validate URL (SSRF, DNS, IPv6 Rules)"| B["Puppeteer Session"]
-    B -->|"Launch Headless Chromium"| C["Browser Rendering"]
-    C -->|"Capture Frames & Audio"| D["Temporary File Storage (Secure, Non-Root FS)"]
-    D -->|"Process Media Files"| E["FFmpeg Encoding Pipeline"]
-    E -->|"Stream Outputs with Backpressure"| F["Final Transcoded File"]
-    F -->|"Save to External Storage"| G["Published Output"]
-    G -->|"Trigger Post-Processing Tests via CI"| H["Test Verification (Jest)"]
-    H -->|"Feedback (Metrics, Debug Logs)"| I["Generation Complete"]
+    A["Project config or studio form"] --> B["Validate URL and steps"]
+    B --> C["Record walkthrough in Chromium<br/>(stops with an error if a step's button is missing)"]
+    B --> D["Build flowchart<br/>(every label comes from your input)"]
+    C --> E["Export GIF, lite GIF, MP4, WebM"]
+    D --> E
+    E --> F["Caption helper<br/>(placeholders until you add real facts)"]
 ```
 
----
+## Tech stack
 
-## Tech Stack & Tools Breakdown
-- **JavaScript ES6+**: Core language for automation and video handling logic.
-- **Node.js 18+**: Runtime environment for Puppeteer and FFmpeg integrations.
-- **Puppeteer**: Enables seamless headless browser automation with Chromium.
-- **Chromium**: Used for rendering dynamic web content prior to video capture.
-- **FFmpeg**: Industry-standard media framework for video/audio transcoding and encoding.
-- **Jest**: Framework for deterministic test development ensuring quality and compatibility.
-- **Docker**: Streamlines deployment with containerized Chromium and FFmpeg environments.
-- **GitHub Actions**: Facilitates automated testing, linting, and CI/CD pipelines.
-- **Lodash**: Simplifies data manipulation and functional programming utilities.
-- **Mermaid Diagrams**: Used for visualizing workflows and system architecture.
+| Part | Used for |
+|---|---|
+| Node.js 18+ | Runtime |
+| [Playwright](https://playwright.dev) (Chromium) | Opening the site, clicking, screenshots, WebM recording |
+| Express | Local studio server (`src/server.js`) |
+| gifenc + pngjs | GIF encoding |
+| ffmpeg (optional) | MP4 (H.264) export. Without it you still get GIF and WebM |
 
----
+There is no database, no Docker setup and no CI pipeline in this repo.
 
-## Quickstart / Installation
+## Quick start
 
-Follow these steps to set up and run **kind-borg** on your local machine:
+```bash
+npm install
+npx playwright install chromium   # first time only
+npm start                         # studio at http://localhost:3000
+```
 
-### Prerequisites
-- Node.js v18+ installed
-- Docker installed and running
-- FFmpeg accessible via the system `$PATH`
+Other scripts:
 
-### Installation Steps
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/EF361/kind-borg.git
-   cd kind-borg
-   ```
+```bash
+npm run record                    # record using visualproof.config.js
+npm run record -- my-app.config.js
+npm run samples                   # rebuild the sample flowcharts in public/samples
+npm test                          # end-to-end checks against the built-in demo
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+On Windows you can also double-click `run.bat`.
 
-3. Build and start the Docker container:
-   ```bash
-   docker build -t kind-borg .
-   docker run --rm -it -v "$(pwd):/app" kind-borg
-   ```
+## Record a walkthrough from a config file
 
-4. Run the application:
-   ```bash
-   npm start -- --url="https://example.com"
-   ```
+Copy `visualproof.config.js` for each project and edit it:
 
-5. Run tests:
-   ```bash
-   npm test
-   ```
+```js
+module.exports = {
+  name: 'entropass',                    // output file prefix
+  url: 'https://your-app.vercel.app',
+  formats: ['4x5', '1x1'],              // 1x1, 4x5, 1.91x1, standard
+  output: ['mp4', 'gif', 'gif-lite'],   // gif, gif-lite, webm, mp4
+  badgePosition: 'top',                 // top or bottom
+  // duration: 15,                      // optional: fit to N seconds. Leave out for real timing
+  steps: [
+    { caption: 'Strength estimate', point: { text: /≈ \d+ bits/ } },
+    { caption: 'Passphrase mode', click: { role: 'button', name: 'Passphrase' } },
+    { caption: 'Copied to clipboard', click: { role: 'button', name: 'Copy to clipboard' } },
+    { caption: 'Mobile view', viewport: 'mobile', click: { role: 'button', name: 'Generate' } }
+  ]
+};
+```
 
-### Output Location
-Transcoded files and logs will be stored in the `output/` directory by default. Customize this location in the `.env` configuration file.
+Each step has a `caption` and at most one of `click` or `point`. The target is one of:
 
-### Security Notes
-Ensure all URLs provided to the tool are explicitly trusted to avoid accidental SSRF risks. Refer to the **Security** section in the documentation for further guidelines.
+| Target | Example |
+|---|---|
+| Role and accessible name (most reliable) | `{ role: 'button', name: 'Generate' }` |
+| Visible text (string or regex) | `{ text: 'Copy' }` |
+| CSS selector | `{ selector: '#qr-btn' }` |
 
----
+Optional per step: `viewport: 'mobile' | 'desktop'`, `scroll: 300` (pixels), `hold: 1800` (ms to stay on the result).
 
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request with detailed descriptions of the changes made.
+**Fails loudly.** If a target is not found within 5 seconds, the run stops with a message like
+`Step 3 ("Passphrase mode"): button 'Passphrase' not found` and no partial files are written.
+Config mistakes are all listed at once before the browser starts.
 
----
+Outputs go to `public/outputs/` (git-ignored). The lite GIF is 60% size with 64 colours and half the frames, usually about 4–5× smaller. The MP4 is built from the same frames as the GIF, so the mobile view stays centred and the timing matches.
 
-## License
-**kind-borg** is licensed under the [MIT License](LICENSE). 
+## Studio (browser UI)
 
----
+`npm start`, then open http://localhost:3000.
 
-**Maintainer**: Alicia Goh (EF361) | **Contact**: [github.com/EF361](https://github.com/EF361)
+- **Recording Steps** box: one step per line, for example
+  ```text
+  Click "Generate"
+  Point at "Strength"
+  Passphrase mode | Click "Passphrase"
+  Mobile: Click `#mobile-generate-btn`
+  ```
+  Text in quotes is the button text, backticks hold a CSS selector, and text before `|` becomes the caption. Leave it empty on `/demo` to use the built-in demo steps. This is a rule-based **step planner**, not AI: lines without a target are rejected with a message instead of being guessed.
+- **Flowchart:** 3–8 stages in your order, an optional title and an optional footer note. `Label (sub label)` adds a small second line. Nothing else is added: no invented servers, protocols or latency numbers.
+- **Captions:** the templates contain `[placeholders]`. The Post to LinkedIn button will not open until every `[bracketed]` part is replaced or deleted. See `TEMPLATES.md`.
+
+## Deploying to Vercel
+
+Vercel cannot run Playwright, so the deployed site is a **demo**: the `api/` functions return the pre-recorded samples in `public/samples/`, and the page shows a "Demo mode" note. Record your own app by running the studio locally.
+
+## Security
+
+- The studio server listens on `127.0.0.1` only by default. Set `HOST=0.0.0.0` only on a network you trust.
+- Target URLs must be `http`/`https`, without a username or password, and must not resolve to a private, loopback, link-local or similar address (checked after DNS lookup). The studio's own `/demo` is the one exception.
+- While recording, every request the browser makes (redirects, images, scripts) is checked the same way, so a public page cannot redirect the recorder to an internal address.
+- The CLI (`npm run record`) runs only on your machine with your own config, so it can record `localhost` apps.
+
+## Project structure
+
+```text
+src/
+  server.js            Express studio server and API
+  walkthrough.js       Recording engine (config check, steps, GIF/MP4 export)
+  planner.js           Step planner: text lines -> steps
+  flowchartAnimator.js Animated flowchart (3-8 stages)
+  urlSafety.js         SSRF checks
+  videoExport.js       MP4 export via ffmpeg
+  gifEncoder.js        GIF encoder (full and lite)
+record-live.js         CLI: record from a config file
+visualproof.config.js  Example config (built-in demo)
+public/                Studio UI, demo app (public/demo), samples
+api/                   Vercel demo functions (return samples)
+TEMPLATES.md           Caption playbook with placeholders
+```

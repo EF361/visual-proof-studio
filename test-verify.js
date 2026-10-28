@@ -1,75 +1,109 @@
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const app = require('./src/server');
 const { planInstructions } = require('./src/planner');
 const { generateFlowchartGif } = require('./src/flowchartAnimator');
-const { recordWalkthrough } = require('./src/recorder');
+const { recordWalkthrough, validateConfig } = require('./src/walkthrough');
+const { isPrivateIp } = require('./src/urlSafety');
 
 const TEST_PORT = 3001;
+const OUTPUT_DIR = path.join(__dirname, 'public', 'outputs', 'test');
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+async function expectError(fn, pattern, label) {
+  try {
+    await fn();
+  } catch (err) {
+    assert(pattern.test(err.message), `${label}: unexpected error "${err.message}"`);
+    console.log(`[PASS] ${label}: ${err.message.split('\n')[0]}`);
+    return;
+  }
+  throw new Error(`${label}: expected an error, got none`);
+}
+
+function assertGif(file) {
+  const header = fs.readFileSync(file).slice(0, 6).toString('ascii');
+  assert(header.startsWith('GIF8'), `Invalid GIF header in ${file}: ${header}`);
+}
 
 async function runTests() {
-  console.log('=== Starting VisualProof Studio Automated Verification ===\n');
-
-  // Start test server
+  console.log('=== VisualProof Studio verification ===\n');
+  fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
   const server = app.listen(TEST_PORT);
-  console.log(`[PASS] Server started on port ${TEST_PORT}`);
+  const demoUrl = `http://localhost:${TEST_PORT}/demo`;
 
   try {
-    // 1. Health check
-    const healthRes = await fetch(`http://localhost:${TEST_PORT}/api/health`);
-    const healthData = await healthRes.json();
-    if (healthData.status !== 'ok') throw new Error('Health check failed');
-    console.log('[PASS] Health check OK:', healthData);
+    const health = await (await fetch(`http://localhost:${TEST_PORT}/api/health`)).json();
+    assert(health.status === 'ok', 'Health check failed');
+    console.log('[PASS] Health check');
 
-    // 2. Test Step Planner
-    const userPrompt = `Quick one-tap generation on Desktop showing the split-panel with the sticky settings sidebar.
-Toggling into Passphrase mode (showing words like correct-horse-battery-staple).
-Clicking the QR Code button and showing the SVG modal open.
-Switching the viewport to Mobile to highlight the sticky thumb-reach action bar at the bottom.`;
+    // Step planner
+    const demoPlan = planInstructions('', demoUrl);
+    assert(demoPlan.steps.length === 6, `Expected 6 demo steps, got ${demoPlan.steps.length}`);
+    const custom = planInstructions('Click "Generate"\nMobile: Tap `#mobile-generate-btn`', 'https://example.com');
+    assert(custom.steps[0].click.text === 'Generate' && custom.steps[1].viewport === 'mobile', 'Planner parsed steps wrongly');
+    console.log('[PASS] Step planner parses targets and viewport switches');
+    await expectError(() => planInstructions('Click generate', 'https://example.com'), /button text in quotes/, 'Planner rejects a click with no target');
 
-    const plan = planInstructions(userPrompt, `http://localhost:${TEST_PORT}/demo`, { duration: 18 });
-    if (!plan.steps || plan.steps.length !== 5) {
-      throw new Error(`Expected 5 steps, got ${plan.steps ? plan.steps.length : 0}`);
-    }
-    console.log(`[PASS] Step planner produced 5 detailed steps (~${plan.estimatedDurationSec}s estimated duration)`);
-    plan.steps.forEach((s, idx) => {
-      console.log(`   Step ${idx + 1}: ${s.caption} (${s.type}, ${s.durationMs}ms)`);
+    // Config validation
+    await expectError(() => validateConfig({ url: 'ftp://x', steps: [] }), /http:\/\/ or https:\/\/[\s\S]*steps must be a non-empty list/, 'Config validation lists every problem');
+
+    // URL safety
+    assert(isPrivateIp('169.254.169.254') && isPrivateIp('::ffff:10.0.0.1') && !isPrivateIp('8.8.8.8'), 'Private IP detection failed');
+    const unsafe = await fetch(`http://localhost:${TEST_PORT}/api/generate-walkthrough`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'Click "Go"', targetUrl: 'http://127.0.0.1:22' })
     });
+    assert(unsafe.status === 400, `Unsafe URL should give 400, got ${unsafe.status}`);
+    console.log('[PASS] Server blocks private target URLs');
 
-    // 3. Test Flowchart GIF generator
-    console.log('\nTesting Flowchart GIF generation...');
-    const flowRes = await generateFlowchartGif({
-      title: 'Test Verification Architecture Flow',
-      outputDir: path.join(__dirname, 'public', 'outputs')
+    // Flowchart: labels only from input, 3-8 stages
+    await expectError(() => generateFlowchartGif({ stages: ['A', 'B'], outputDir: OUTPUT_DIR }), /3-8 stages/, 'Flowchart rejects 2 stages');
+    const flow = await generateFlowchartGif({
+      title: 'Test Flow',
+      stages: ['Input', 'Process (sub label)', 'Output'],
+      footer: 'test footer',
+      outputDir: OUTPUT_DIR,
+      filenamePrefix: 'test_flow'
     });
-    if (!fs.existsSync(flowRes.gifPath)) throw new Error('Flowchart GIF file was not created');
-    const flowHeader = fs.readFileSync(flowRes.gifPath).slice(0, 6).toString('ascii');
-    if (!flowHeader.startsWith('GIF89') && !flowHeader.startsWith('GIF87')) {
-      throw new Error(`Invalid GIF header: ${flowHeader}`);
-    }
-    console.log(`[PASS] Flowchart GIF generated successfully: ${flowRes.gifFilename} (${flowRes.frameCount} frames, ${Math.round(flowRes.size / 1024)} KB, ${flowRes.durationSec}s)`);
+    assertGif(flow.gifPath);
+    console.log(`[PASS] Flowchart GIF: ${flow.frameCount} frames, ${Math.round(flow.size / 1024)} KB, ${flow.durationSec}s`);
 
-    // 4. Test Playwright Web App Walkthrough recording
-    console.log('\nTesting Web Walkthrough recording with Playwright...');
-    const walkRes = await recordWalkthrough(plan, {
-      outputDir: path.join(__dirname, 'public', 'outputs')
-    });
-    if (!fs.existsSync(walkRes.gifPath)) throw new Error('Walkthrough GIF file was not created');
-    const walkHeader = fs.readFileSync(walkRes.gifPath).slice(0, 6).toString('ascii');
-    if (!walkHeader.startsWith('GIF89') && !walkHeader.startsWith('GIF87')) {
-      throw new Error(`Invalid GIF header: ${walkHeader}`);
-    }
-    console.log(`[PASS] Walkthrough GIF generated successfully: ${walkRes.gifFilename} (${walkRes.frameCount} frames, ${(walkRes.size / (1024 * 1024)).toFixed(2)} MB, ${walkRes.durationSec}s)`);
+    // Walkthrough: records the demo, then fails loudly on a missing button
+    const [walk] = await recordWalkthrough({
+      name: 'test_walk',
+      url: demoUrl,
+      output: ['gif', 'gif-lite'],
+      steps: demoPlan.steps
+    }, { outputDir: OUTPUT_DIR });
+    assertGif(walk.files.gif);
+    assertGif(walk.files.gifLite);
+    assert(fs.statSync(walk.files.gifLite).size < fs.statSync(walk.files.gif).size, 'Lite GIF should be smaller');
+    console.log(`[PASS] Walkthrough GIF + lite GIF: ${walk.frameCount} frames, ${walk.durationSec}s`);
 
-    console.log('\n=== All Tests Passed Successfully! ===');
+    await expectError(() => recordWalkthrough({
+      name: 'test_missing',
+      url: demoUrl,
+      output: ['gif'],
+      stepTimeoutMs: 1500,
+      steps: [{ caption: 'Missing', click: { role: 'button', name: 'No Such Button' } }]
+    }, { outputDir: OUTPUT_DIR }), /Step 1 .*not found/, 'Missing button stops the run');
+
+    const leftovers = fs.readdirSync(OUTPUT_DIR).filter(f => f.startsWith('page@') || f.includes('test_missing'));
+    assert(leftovers.length === 0, `Leftover files: ${leftovers.join(', ')}`);
+    console.log('[PASS] No leftover temp recordings');
+
+    console.log('\n=== All checks passed ===');
   } finally {
     server.close();
-    console.log('Test server closed.');
   }
 }
 
 runTests().catch(err => {
-  console.error('\n[FAIL] Test verification failed:', err);
+  console.error('\n[FAIL]', err.message);
   process.exit(1);
 });

@@ -1,146 +1,124 @@
 /**
- * Hybrid AI Planner for VisualProof Studio
- * Converts natural-language instructions into timed, executable Playwright browser actions.
+ * Step planner for VisualProof Studio.
+ *
+ * Turns plain-text lines into walkthrough steps (the same step format as
+ * visualproof.config.js). It is rule-based, not AI: every step must name its
+ * own target, so a click never lands on a guessed spot.
+ *
+ * One step per line:
+ *   Click "Generate"                  -> click the element with that visible text
+ *   Point at "Strength meter"         -> move the cursor there without clicking
+ *   Click `#qr-btn`                   -> CSS selector in backticks
+ *   Mobile: Click "Regenerate"        -> switch to the mobile viewport first
+ *   Caption text | Click "Generate"   -> custom badge caption before the |
  */
 
+const CLICK_WORDS = /\b(click|tap|press|toggle|open|select|choose|close)\b/i;
+const POINT_WORDS = /\b(point|hover|show|highlight|look)\b/i;
+
+// Built-in demo app (public/demo): known-good steps for the "Local Demo" preset
+const DEMO_STEPS = [
+  { caption: 'Live entropy estimate', point: { selector: '#entropy-bits' } },
+  { caption: 'One-tap generation', click: { selector: '#generate-btn' } },
+  { caption: 'Passphrase mode', click: { selector: '#mode-passphrase-btn' } },
+  { caption: 'QR code for another device', click: { selector: '#qr-btn' } },
+  { caption: 'Close the QR code', click: { selector: '#close-modal-btn' }, hold: 600 },
+  { caption: 'Mobile view', viewport: 'mobile', click: { selector: '#mobile-generate-btn' } }
+];
+
+function isBuiltInDemo(targetUrl) {
+  try {
+    return new URL(targetUrl).pathname.replace(/\/$/, '') === '/demo';
+  } catch (_) {
+    return false;
+  }
+}
+
+/** Parses one line. Returns { step } or { error }. Blank lines return null. */
+function parseLine(rawLine, n) {
+  let line = rawLine.replace(/^\s*(\d+[.)]|[-*•])\s*/, '').trim();
+  if (!line) return null;
+
+  let caption = '';
+  const pipe = line.indexOf('|');
+  if (pipe !== -1) {
+    caption = line.slice(0, pipe).trim();
+    line = line.slice(pipe + 1).trim();
+  }
+
+  const step = {};
+  const viewport = line.match(/^(mobile|desktop)\s*[:,-]?\s*/i);
+  if (viewport) {
+    step.viewport = viewport[1].toLowerCase();
+    line = line.slice(viewport[0].length);
+  }
+
+  const selector = line.match(/`([^`]+)`/);
+  const quoted = line.match(/"([^"]+)"|“([^”]+)”|'([^']+)'/);
+  const target = selector
+    ? { selector: selector[1].trim() }
+    : quoted ? { text: (quoted[1] || quoted[2] || quoted[3]).trim() } : null;
+
+  const wantsClick = CLICK_WORDS.test(line);
+  const wantsPoint = POINT_WORDS.test(line);
+
+  if (target) {
+    step[wantsClick || !wantsPoint ? 'click' : 'point'] = target;
+  } else if (wantsClick) {
+    return { error: `Step ${n} ("${rawLine.trim()}"): add the button text in quotes, e.g. Click "Generate", or a selector in backticks` };
+  } else if (!step.viewport) {
+    return { error: `Step ${n} ("${rawLine.trim()}"): say what to click or point at, e.g. Click "Generate" or Point at "Score"` };
+  }
+
+  const fromLine = (viewport ? viewport[0] : '') + line;
+  const cleaned = fromLine.replace(/`[^`]+`/g, '').replace(/["“”]/g, '').replace(/\s+/g, ' ').replace(/[\s:,-]+$/, '').trim();
+  step.caption = (caption || cleaned || rawLine.trim()).slice(0, 70);
+  return { step };
+}
+
+/**
+ * @returns {{ title, targetUrl, steps, estimatedDurationSec }}
+ * @throws Error listing every line that could not become a step
+ */
 function planInstructions(promptText, targetUrl, options = {}) {
-  const targetDurationSec = options.duration || 18; // default 18 seconds (in the 15-20s window)
-  const normalized = (promptText || '').toLowerCase();
+  const text = String(promptText || '').trim();
 
-  // Preset detection: Password/Passphrase Generator Demo
-  const isPassphraseDemo = normalized.includes('passphrase') ||
-    normalized.includes('sticky settings') ||
-    normalized.includes('qr code') ||
-    normalized.includes('thumb-reach') ||
-    normalized.includes('correct-horse-battery-staple');
-
-  if (isPassphraseDemo) {
+  if (!text && isBuiltInDemo(targetUrl)) {
     return {
-      title: 'Visual Proof: Passphrase & Mobile Responsive Demo',
-      targetUrl: targetUrl || 'http://localhost:3000/demo',
-      estimatedDurationSec: 18,
-      steps: [
-        {
-          id: 'step-1',
-          name: 'Inspect Desktop Split-Panel',
-          caption: 'Desktop Split-Panel & Sticky Settings',
-          type: 'navigate_and_inspect',
-          viewport: { width: 1280, height: 750 },
-          durationMs: 3200,
-          cursorTarget: { x: 980, y: 220 }, // Hover over sticky sidebar
-          action: 'hover',
-          selector: '.sticky-sidebar'
-        },
-        {
-          id: 'step-2',
-          name: 'Quick One-Tap Generate',
-          caption: 'Quick One-Tap Generation',
-          type: 'click_element',
-          viewport: { width: 1280, height: 750 },
-          selector: '#generate-btn',
-          textMatch: 'Quick One-Tap Generate',
-          durationMs: 3200,
-          cursorTarget: { x: 380, y: 295 },
-          action: 'click',
-          waitAfterMs: 1200
-        },
-        {
-          id: 'step-3',
-          name: 'Toggle Passphrase Mode',
-          caption: 'Switching to Passphrase Mode (correct-horse-battery-staple)',
-          type: 'click_element',
-          viewport: { width: 1280, height: 750 },
-          selector: '#mode-passphrase-btn',
-          textMatch: 'Passphrase Mode',
-          durationMs: 4000,
-          cursorTarget: { x: 1040, y: 155 },
-          action: 'click',
-          waitAfterMs: 1800
-        },
-        {
-          id: 'step-4',
-          name: 'Open Air-Gapped QR Code SVG Modal',
-          caption: 'Opening SVG QR Code Modal',
-          type: 'click_element',
-          viewport: { width: 1280, height: 750 },
-          selector: '#qr-btn',
-          textMatch: 'QR Code',
-          durationMs: 3600,
-          cursorTarget: { x: 620, y: 295 },
-          action: 'click',
-          waitAfterMs: 1600
-        },
-        {
-          id: 'step-5',
-          name: 'Switch Viewport to Mobile & Highlight Sticky Thumb Bar',
-          caption: 'Mobile Viewport: Sticky Thumb-Reach Action Bar',
-          type: 'responsive_switch',
-          viewport: { width: 390, height: 820 },
-          closeModalFirst: '#close-modal-btn',
-          selector: '#mobile-generate-btn',
-          durationMs: 4000,
-          cursorTarget: { x: 140, y: 775 }, // Thumb button position
-          action: 'click',
-          waitAfterMs: 1200
-        }
-      ]
+      title: 'Built-in demo steps',
+      targetUrl,
+      steps: DEMO_STEPS,
+      estimatedDurationSec: Math.round(DEMO_STEPS.length * 2.4)
     };
   }
 
-  // Generic AI Step Planner for any arbitrary external web URL
-  const lines = promptText.split(/\r?\n|\.\s+/).map(l => l.trim()).filter(Boolean);
   const steps = [];
-  const baseStepDuration = Math.max(2500, Math.floor((targetDurationSec * 1000) / Math.max(3, lines.length)));
-
-  // Initial step: load URL
-  steps.push({
-    id: 'step-init',
-    name: 'Initial Desktop Load',
-    caption: 'Loading Web Application',
-    type: 'navigate_and_inspect',
-    viewport: { width: 1280, height: 750 },
-    durationMs: baseStepDuration,
-    cursorTarget: { x: 640, y: 350 },
-    action: 'hover'
+  const errors = [];
+  text.split(/\r?\n/).forEach(line => {
+    const parsed = parseLine(line, steps.length + errors.length + 1);
+    if (!parsed) return;
+    if (parsed.error) errors.push(parsed.error);
+    else steps.push(parsed.step);
   });
 
-  // Parse lines into actions
-  lines.forEach((line, index) => {
-    const lower = line.toLowerCase();
-    let actionType = 'click';
-    let isMobile = lower.includes('mobile') || lower.includes('viewport');
-
-    let caption = line.length > 50 ? line.slice(0, 47) + '...' : line;
-    let stepObj = {
-      id: `step-${index + 1}`,
-      name: line.slice(0, 30),
-      caption: caption,
-      durationMs: baseStepDuration,
-      type: isMobile ? 'responsive_switch' : 'click_element',
-      viewport: isMobile ? { width: 390, height: 820 } : { width: 1280, height: 750 },
-      instruction: line
-    };
-
-    if (lower.includes('scroll')) {
-      stepObj.action = 'scroll';
-      stepObj.scrollDelta = 300;
-    } else if (lower.includes('type') || lower.includes('enter') || lower.includes('fill')) {
-      stepObj.action = 'type';
-    } else {
-      stepObj.action = 'click';
-    }
-
-    steps.push(stepObj);
-  });
+  if (errors.length || steps.length === 0) {
+    const err = new Error(errors.length
+      ? `Some steps need a target:\n  - ${errors.join('\n  - ')}`
+      : 'No steps found. Write one step per line, e.g. Click "Generate".');
+    err.code = 'INVALID_STEPS';
+    throw err;
+  }
 
   return {
-    title: 'Custom Web Application Walkthrough',
-    targetUrl: targetUrl,
-    estimatedDurationSec: Math.round((steps.length * baseStepDuration) / 1000),
-    steps
+    title: options.title || 'Custom walkthrough',
+    targetUrl,
+    steps,
+    estimatedDurationSec: Math.round(steps.length * 2.4)
   };
 }
 
 module.exports = {
-  planInstructions
+  planInstructions,
+  parseLine,
+  DEMO_STEPS
 };

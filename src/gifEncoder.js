@@ -10,9 +10,11 @@ const fs = require('fs');
  * @param {number} [targetWidth] Target width in pixels
  * @param {number} [targetHeight] Target height in pixels
  * @param {'crop'|'contain'} [fitMode] 'crop' (center-crop) or 'contain' (letterbox with dark frame)
+ * @param {{ maxColors?: number }} [options] Palette size per frame (default 256; lower = smaller file)
  * @returns {Promise<{ path: string, size: number, frameCount: number, width: number, height: number }>}
  */
-async function encodeGifFromPngFrames(frames, outputPath, targetWidth = null, targetHeight = null, fitMode = 'crop') {
+async function encodeGifFromPngFrames(frames, outputPath, targetWidth = null, targetHeight = null, fitMode = 'crop', options = {}) {
+  const maxColors = Math.max(2, Math.min(256, options.maxColors || 256));
   if (!frames || frames.length === 0) {
     throw new Error('No frames provided for GIF encoding');
   }
@@ -50,7 +52,7 @@ async function encodeGifFromPngFrames(frames, outputPath, targetWidth = null, ta
     }
 
     // High quality rgb565 color quantization for crisp text & anti-aliased font edges
-    const palette = quantize(rgba, 256, {
+    const palette = quantize(rgba, maxColors, {
       format: 'rgb565',
       oneBitAlpha: false
     });

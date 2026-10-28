@@ -634,6 +634,21 @@ body {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-dim);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step-plan-error {
+  white-space: pre-line;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
 }
 
 /* Action Buttons */
@@ -787,6 +802,22 @@ body {
   border: 1px solid var(--border-color);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
+}
+
+#node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.node-list-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.node-list-actions .pill-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .step-num {

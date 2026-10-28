@@ -11,14 +11,11 @@ module.exports = (req, res) => {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const prompt = body.prompt || 'Quick one-tap generation on Desktop...';
-    const targetUrl = body.targetUrl || 'https://my-app.vercel.app';
-    const duration = body.duration || 18;
-
-    const plan = planInstructions(prompt, targetUrl, { duration });
+    // Same step parser as the local server; an empty prompt on /demo uses the demo steps
+    const plan = planInstructions(body.prompt, body.targetUrl || '/demo');
     return res.status(200).json({ success: true, plan });
   } catch (err) {
-    console.error('Plan API error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    const status = err.code === 'INVALID_STEPS' ? 400 : 500;
+    return res.status(status).json({ success: false, error: err.message });
   }
 };
